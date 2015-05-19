@@ -3,7 +3,6 @@
  * Created on Jan 13, 2009
  */
 
-use crazedsanity\core\baseAbstract;
 use crazedsanity\core\ToolBox;
 use crazedsanity\filesystem\FileSystem;
 
@@ -13,42 +12,70 @@ class TestOfCSFileSystem extends PHPUnit_Framework_TestCase {
 	
 	//-------------------------------------------------------------------------
 	public function __construct() {
-		//make sure it's all clean.
-		$this->_makeClasses();
-		$this->tearDown();
-		
+		//TODO: clean up any old files...
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
 	
-	//-------------------------------------------------------------------------
-	protected function _makeClasses() {
-		$filesDir = dirname(__FILE__) ."/files";
-		$this->reader = new FileSystem($filesDir);
-		$this->writer = new FileSystem($filesDir .'/rw');
-	}//end _makeClasses()
-	//-------------------------------------------------------------------------
-	
-	
 	
 	//-------------------------------------------------------------------------
-	public function setUp() {
-		$this->_makeClasses();
+	public function test_basics() {
+		$fs = new _fs_testProtectedMethods(__DIR__);
 		
-		//make a directory to write into.
-		$this->writer->mkdir(__CLASS__);
-		$this->writer->cd(__CLASS__);
-	}//end setUp()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	public function tearDown() {
-		//TODO: this should be able to RECURSIVELY delete files & folders.
-		$this->writer->cd('/');
-		@$this->writer->rmdir(__CLASS__);
-	}//end tearDown()
+		$this->assertEquals('/', $fs->cwd);
+		$this->assertEquals(__DIR__, $fs->realcwd);
+		
+		
+		// check that cd()'ing to a valid subdirectory works.
+		{
+			// just the directory name for CWD (no leading slash)
+			$validCwd = new crazedsanity\filesystem\FileSystem(__DIR__);
+			$this->assertEquals($validCwd->cd("files"),1);
+			$this->assertEquals(__DIR__ .'/files', $validCwd->realcwd);
+			$this->assertEquals('/files', $validCwd->cwd, "invalid cwd... ". ToolBox::debug_print($validCwd,0));
+			$this->assertTrue(is_dir(__DIR__ .'/files'), "required directory does not exist");
+			
+			//use a leading slash in CWD
+			$validCwd2 = new crazedsanity\filesystem\FileSystem(__DIR__);
+			$this->assertEquals($validCwd2->cd('/files'), 1);
+			$this->assertEquals(__DIR__ .'/files', $validCwd2->realcwd);
+			$this->assertEquals('/files', $validCwd2->cwd);
+
+		}//*/
+		
+		//make sure specifying an invalid CWD works as expected
+		{
+			$invalidCwd = new FileSystem(__DIR__, '/xDoEsn0tEx15t');
+			$this->assertEquals('/', $invalidCwd->cwd);
+			$this->assertEquals(__DIR__, $invalidCwd->realcwd);
+			$this->assertEquals($invalidCwd->root, $invalidCwd->realcwd);
+		}
+		
+		//test that it fixes invalid modes.
+		{
+			$validModes = array('r', 'r+', 'w', 'w+', 'a', 'a+', 'x', 'x+', 'c', 'c+');
+			$invalidModes = array('b', 'b+', 'd', 'd+', 'e', 'e+');
+			
+			$testMe = new FileSystem(__DIR__);
+			
+			foreach($validModes as $x) {
+//				$testMe = new FileSystem(__DIR__, null, $x, "failed to test valid mode (". $x ."), dir=(". __DIR__ .")");
+				$testMe->setMode($x);
+				$this->assertEquals($x, $testMe->mode);
+			}
+
+			foreach($invalidModes as $x) {
+				$testMe->mode = "r+";
+				try {
+					$this->assertNotEquals($x, $testMe->mode);
+				}
+				catch(InvalidArgumentException $e) {
+					$this->assertTrue((bool)preg_match('~invalid mode~', $e->getMessage()));
+				}
+				$this->assertEquals('r+', $testMe->mode);
+			}
+		}
+	}
 	//-------------------------------------------------------------------------
 	
 	
@@ -100,57 +127,6 @@ class TestOfCSFileSystem extends PHPUnit_Framework_TestCase {
 	
 	
 	//-------------------------------------------------------------------------
-	public function test_basics() {
-		$fs = new _fs_testProtectedMethods(__DIR__);
-		
-		$this->assertEquals('/', $fs->cwd);
-		$this->assertEquals(__DIR__, $fs->realcwd);
-		
-		
-		// check that specifying a valid current working directory (cwd) works
-		{
-			$this->assertTrue(is_dir(__DIR__ .'/files'), "required directory does not exist");
-			//use a leading slash in CWD
-			$validCwd2 = new crazedsanity\filesystem\FileSystem(__DIR__, '/files');
-			$this->assertEquals(__DIR__ .'/files', $validCwd2->realcwd);
-			$this->assertEquals('/files', $validCwd2->cwd);
-
-			// just the directory name for CWD (no leading slash)
-			$validCwd = new crazedsanity\filesystem\FileSystem(__DIR__, 'files');
-			$this->assertEquals(__DIR__ .'/files', $validCwd->realcwd);
-			$this->assertEquals('files', $validCwd->cwd);
-		}//*/
-		
-		//make sure specifying an invalid CWD works as expected
-		{
-			$invalidCwd = new FileSystem(__DIR__, '/xDoEsn0tEx15t');
-			$this->assertEquals('/', $invalidCwd->cwd);
-			$this->assertEquals(__DIR__, $invalidCwd->realcwd);
-			$this->assertEquals($invalidCwd->root, $invalidCwd->realcwd);
-		}
-		
-		//test that it fixes invalid modes.
-		{
-			$validModes = array('r', 'r+', 'w', 'w+', 'a', 'a+', 'x', 'x+', 'c', 'c+');
-			$invalidModes = array('b', 'b+', 'd', 'd+', 'e', 'e+');
-
-			foreach($validModes as $x) {
-				$testMe = new FileSystem(__DIR__, null, $x);
-				$this->assertEquals($x, $testMe->mode);
-			}
-
-			foreach($invalidModes as $x) {
-				$testMe = new FileSystem(__DIR__, null, $x);
-				$this->assertNotEquals($x, $testMe->mode);
-				$this->assertEquals('r+', $testMe->mode);
-			}
-		}
-	}
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
 	/**
 	 * @expectedException InvalidArgumentException
 	 */
@@ -164,7 +140,12 @@ class TestOfCSFileSystem extends PHPUnit_Framework_TestCase {
 	//-------------------------------------------------------------------------
 	public function test_readWrite() {
 		
-		$this->assertEquals($this->reader->root, dirname(__FILE__) .'/files');
+		$this->reader = new FileSystem(__DIR__);
+		$this->reader->cd("files");
+		$this->writer = new FileSystem(__DIR__);
+		$this->writer->cd("files/rw");
+		
+		$this->assertEquals($this->reader->realcwd, __DIR__ .'/files');
 		
 		$outsideLs = $this->reader->ls("templates");
 		

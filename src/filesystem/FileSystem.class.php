@@ -16,13 +16,14 @@ class FileSystem extends baseAbstract {
 	public $fh;		//file handle.
 	public $filename;	//filename currently being used.
 	public $lineNum = NULL;
+	public $mode = "r+";
 
 	
 	//========================================================================================
 	/**
 	 * The constructor.
 	 */
-	public function __construct($rootDir, $cwd=NULL, $initialMode=NULL) {
+	public function __construct($rootDir) {
 		//set the root directory that we'll be using; this is considered just like "/" in 
 		//	linux.  Directories above it are considered non-existent.
 		if(!is_null($rootDir)) {
@@ -31,28 +32,16 @@ class FileSystem extends baseAbstract {
 
 			$this->root = ToolBox::resolve_path_with_dots($rootDir);
 
-			//set the CURRENT working directory... this should be a RELATIVE path to $this->root.
-			if(!is_null($cwd) AND (is_dir($rootDir .'/'. $cwd)) AND (!preg_match('~'. $cwd .'~', $this->root))) {
-				//looks good.  Use it.
-				$this->cwd = $cwd;
-				$this->realcwd = $this->root .'/'. $cwd;
-			} else {
-				//no dice.  Use the root.
-				$this->cwd = '/';
-				$this->realcwd = $this->root ;
-			}
+			//no dice.  Use the root.
+			$this->cwd = '/';
+			$this->realcwd = $this->root ;
 			$this->realcwd = preg_replace('~/{2,}~', '/', $this->realcwd);
-			
-			chdir($this->realcwd);
-
-			//check for the initialMode...
-			$useableModes = array('r', 'r+', 'w', 'w+', 'a', 'a+', 'x', 'x+', 'c', 'c+');
-			if(($initialMode) AND (in_array($initialMode, $useableModes))) {
-				//
-				$this->mode = $initialMode;
-			} else {
-				//define the DEFAULT mode.
-				$this->mode = "r+";
+			$this->mode = "r+";
+			if(is_dir($this->realcwd)) {
+				chdir($this->realcwd);
+			}
+			else {
+				Throw new InvalidArgumentException("directory does not exist (". $this->realcwd .")");
 			}
 		}
 		else {
@@ -361,6 +350,16 @@ class FileSystem extends baseAbstract {
 		return($retval);
 	}//end openFile()
 	//========================================================================================
+	
+	
+	public function setMode($newMode) {
+		if(in_array($newMode, array('r', 'r+', 'w', 'w+', 'a', 'a+', 'x', 'x+', 'c', 'c+'))) {
+			$this->mode = $newMode;
+		}
+		else {
+			throw new InvalidArgumentException("invalid mode (". $newMode .")");
+		}
+	}
 	
 	
 	//========================================================================================
