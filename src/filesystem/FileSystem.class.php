@@ -213,11 +213,12 @@ class FileSystem extends baseAbstract {
 			$retval = $int;
 		}
 		
-		if(!function_exists($func)) {
-			throw new exception(__METHOD__ .": required function missing (". $func .")");
+		$retval = null;
+		if(function_exists($func)) {
+			$t = $func($int);
+			$retval = $t['name'];
 		}
-		$t = $func($int);
-		return($t['name']);
+		return($retval);
 	
 	}//end my_getpwuid()
 	//========================================================================================
