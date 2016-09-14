@@ -276,8 +276,9 @@ class TestOfCSFileSystem extends PHPUnit_Framework_TestCase {
 		
 		
 		//now delete the files.
-		foreach($this->writer->ls() as $file=>$garbage) {
-			$this->assertTrue(is_file($this->writer->realcwd .'/'. $file), "Not a file (".$this->writer->realcwd .'/'.  $file .")");
+		$theList = $this->writer->ls();
+		foreach($theList as $file=>$garbage) {
+			$this->assertTrue(is_file($this->writer->realcwd .'/'. $file), "Not a file (".$this->writer->realcwd .'/'.  $file .")... full list: ". ToolBox::debug_print($theList, false));
 			$this->assertTrue($this->writer->rm($file));
 		}
 	}//end test_readWrite()
