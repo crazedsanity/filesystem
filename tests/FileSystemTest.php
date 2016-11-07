@@ -20,10 +20,10 @@ class TestOfCSFileSystem extends PHPUnit_Framework_TestCase {
 	
 	//-------------------------------------------------------------------------
 	public function test_basics() {
-		$fs = new _fs_testProtectedMethods(__DIR__);
+		$fs = new _fs_testProtectedMethods(__DIR__ .'/files');
 		
 		$this->assertEquals('/', $fs->cwd);
-		$this->assertEquals(__DIR__, $fs->realcwd);
+		$this->assertEquals(__DIR__ .'/files', $fs->realcwd);
 		
 		
 		// check that cd()'ing to a valid subdirectory works.
@@ -82,7 +82,7 @@ class TestOfCSFileSystem extends PHPUnit_Framework_TestCase {
 	
 	//-------------------------------------------------------------------------
 	public function test_navigationAndLs() {
-		$fs = new FileSystem(dirname(__FILE__));
+		$fs = new FileSystem(__DIR__);
 		
 		$thisFile = basename(__FILE__);
 		
@@ -142,8 +142,7 @@ class TestOfCSFileSystem extends PHPUnit_Framework_TestCase {
 		
 		$this->reader = new FileSystem(__DIR__);
 		$this->reader->cd("files");
-		$this->writer = new FileSystem(__DIR__);
-		$this->writer->cd("files/rw");
+		$this->writer = new FileSystem(__DIR__ .'/rw');
 		
 		$this->assertEquals($this->reader->realcwd, __DIR__ .'/files');
 		
